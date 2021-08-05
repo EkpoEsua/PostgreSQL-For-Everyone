@@ -9,3 +9,8 @@ A course on Database using PostgreSQL by Dr Chuck - [pg4e](https://pg4e.com)
 * Dealing with concurrency.
 * DML clauses such as ALTER TABLE.
 * Using SQL Sub-queries.
+* Understanding and use of indexes and hashes for an optimized database search according to use case.
+* Generation of random test data.
+* Regular Expressions.
+
+Tools used `psql`, `PostgreSQL`
