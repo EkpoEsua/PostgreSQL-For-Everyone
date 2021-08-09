@@ -1,0 +1,6 @@
+CREATE TABLE docs01 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE TABLE invert01 (
+  keyword TEXT,
+  doc_id INTEGER REFERENCES docs01(id) ON DELETE CASCADE
+);
