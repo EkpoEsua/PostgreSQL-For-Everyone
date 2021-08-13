@@ -15,5 +15,8 @@ A course on Database using PostgreSQL by Dr Chuck - [pg4e](https://pg4e.com)
 * Understanding and Use case of Foward Index such as B-Tree, BRIN, and Hashing.
 * Understanding and use case of Inverted index such as GIN, GiST, and SP-GiST, for an optimized natural language search in a database.
 * Understanding and implementation of indexing using `ts_vector` and `ts_query` functions in PostgreSQL.
+* Use of PostrgeSQL's jsonb datatype for manipulating and storing json.
+* Creating a GIN index on a jsonb datatype column for optimal retrieval of data.
+* Use of python's psyconpg2 library as client to a PostreSQL server, to load json data from an external API.
 
-Tools used `psql`, `PostgreSQL`
+Tools used `psql`, `PostgreSQL`, `psycopg2`

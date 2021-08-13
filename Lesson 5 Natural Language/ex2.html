@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)https://www.pg4e.com/tools/sql/?PHPSESSID=c0a4af240502ab23fb3b1821c4366a21 -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>body {transition: opacity ease-in 0.2s; } 
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; } 
+</style>
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PG4E - Postgres for Everybody</title>
+<script>
+ var _TSUGI = {
+            context_title: "Postgres for Everybody",
+            link_title: "Autograder: Reverse Index (with stop words) in SQL",
+            user_displayname: "Esua Ekpo",
+            ajax_session: "PHPSESSID=c0a4af240502ab23fb3b1821c4366a21",
+heartbeat: 1500000,
+heartbeat_url: "https://www.pg4e.com/tsugi/util/heartbeat?msec=1500000&PHPSESSID=c0a4af240502ab23fb3b1821c4366a21",
+rest_path: {"parent":"\/tools\/sql","base_url":"https:\/\/www.pg4e.com","controller":"","extra":"","action":false,"parameters":[],"current":"\/tools\/sql","full":"\/tools\/sql"},
+spinnerUrl: "https://static.tsugi.org/img/spinner.gif",
+staticroot: "https://static.tsugi.org",
+apphome: "https://www.pg4e.com",
+wwwroot: "https://www.pg4e.com/tsugi",
+websocket_url: false,
+websocket_token: false,
+window_close_message: "Application complete",
+session_expire_message: "Your session has expired"
+
+}
+</script>
+        <!-- Tiny bit of JS -->
+        <script src="./ex2_files/tsugiscripts_head.js"></script>
+        <!-- Le styles -->
+        <link href="./ex2_files/bootstrap.min.css" rel="stylesheet">
+        <link href="./ex2_files/jquery-ui.min.css" rel="stylesheet">
+                <link href="./ex2_files/all.css" rel="stylesheet">
+        <link href="./ex2_files/v4-shims.css" rel="stylesheet">
+        <style>:root {--primary:#336791;
+--primary-menu:#336791;
+--primary-border:#306087;
+--primary-darker:#2e5d83;
+--primary-darkest:#2b5578;
+--background-color:#FFFFFF;
+--secondary:#EEEEEE;
+--secondary-menu:#EEEEEE;
+--text:#111111;
+--text-light:#5E5E5E;
+--font-family:'Open Sans', Corbel, Avenir, 'Lucida Grande', 'Lucida Sans', sans-serif;
+--font-size:14px;
+}</style>
+          <link href="./ex2_files/tsugi2.css" rel="stylesheet">
+
+          <style>
+                        </style>
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/html5shiv/html5shiv.js"></script>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/respond/respond.min.js"></script>
+        <![endif]-->
+
+    <script type="text/javascript">CSRF_TOKEN = "6110ae80ce40b";</script>
+<script type="text/javascript">LTI_PARENT_IFRAME_ID = "tsugi_element_id_54b0d82e";</script>
+</head>
+<body prefix="oer: http://oerschema.org" style="padding-top: 5.93rem;">
+<div id="body_container" class="container">
+<script>
+if (window!=window.top) {
+    document.getElementById("body_container").className = "container-fluid";
+} else {
+    document.getElementById("body_container").className = "container";
+}
+</script>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation" id="tsugi_main_nav_bar" style="display: block;">  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="javascript:window.location.href=&#39;%2Flessons%2Fweek5&#39;;">Done</a>
+    </div>
+    <div class="navbar-collapse collapse">
+    </div> <!--/.nav-collapse -->
+  </div> <!--container -->
+</nav>
+<script>
+if ( ! inIframe() ) {
+  document.getElementById('tsugi_main_nav_bar').style.display = 'block';
+  document.getElementsByTagName('body')[0].style.paddingTop = '5.93rem';
+} else {
+  document.getElementsByTagName('body')[0].style.paddingTop = '1.0rem';
+}
+</script>
+<!-- Modal -->
+<div id="tsugi_settings_dialog" class="modal fade" role="dialog" style="display: none;">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span class="fa fa-close" aria-hidden="true"></span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title">Autograder: Reverse Index (with stop words) in SQL Settings</h4>
+      </div>
+      <div class="modal-body">
+                  <img id="tsugi_settings_spinner" src="./ex2_files/spinner.gif" style="display: none">
+            <span id="tsugi_settings_save_fail" class="text-danger" style="display:none;">Unable to save settings</span>
+            <p>Exercise is set to Inverted index with stop words using SQL</p><p>There is currently no due date/time for this assignment.</p>
+              </div>
+    </div>
+
+  </div>
+</div>
+<div id="flashmessages"></div><h1>Reverse Index 
+(with stop words) in SQL</h1>
+<p>In this assignment, you will create a table of documents and then
+produce a reverse index 
+ with stop words for those documents that identifies each document
+which contains a particular word using SQL.
+</p>
+<p>Connection details:</p>
+<form name="myform" method="post"><input type="hidden" name="PHPSESSID" value="c0a4af240502ab23fb3b1821c4366a21">
+<p>
+Host: <input type="text" name="pdo_host" value="pg.pg4e.com" id="pdo_host" disabled=""><br>
+Port: <input type="text" name="pdo_port" value="5432" id="pdo_port" disabled=""><br>
+Database: <input type="text" name="pdo_database" value="pg4e_73e62c98b5" id="pdo_database" disabled=""><br>
+User: <input type="text" name="pdo_user" value="pg4e_73e62c98b5" disabled=""><br>
+Password: <span id="pass" style="display:none"><input type="text" name="pdo_pass" id="pdo_pass" value="pg4e_p_2d584db4d3fe9a8"></span> (<a href="https://www.pg4e.com/tools/sql/?PHPSESSID=c0a4af240502ab23fb3b1821c4366a21#" onclick="$(&#39;#pass&#39;).toggle();return false;">hide/show</a> <a href="https://www.pg4e.com/tools/sql/?PHPSESSID=c0a4af240502ab23fb3b1821c4366a21#" onclick="copyToClipboard(this, &#39;pg4e_p_2d584db4d3fe9a8&#39;);return false;">copy</a>) <br>
+
+<input type="submit" name="check" onclick="$(&#39;#submitspinner&#39;).show();return true;" value="Check Answer">
+<img id="submitspinner" src="./ex2_files/spinner.gif" style="display:none">
+</p></form>
+<p></p>
+<p>
+Here is the the <b>psql</b> command to access your database:
+</p><pre>psql -h pg.pg4e.com -p 5432 -U pg4e_73e62c98b5 pg4e_73e62c98b5<!--
+Python Notebook:
+%load_ext sql
+%config SqlMagic.autocommit=False
+%sql postgres://pg4e_73e62c98b5:replacewithsecret@pg.pg4e.com:5432/pg4e_73e62c98b5-->
+</pre>
+<p></p>
+<pre>CREATE TABLE docs02 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE TABLE invert02 (
+  keyword TEXT,
+  doc_id INTEGER REFERENCES docs02(id) ON DELETE CASCADE
+);
+</pre>
+<p>
+If you already have the above tables created and the documents inserted
+from a prior assignment, you can just delete all the rows from 
+the reverse index and recreate them following the rules of stop words:
+</p><pre>DELETE FROM invert02;
+</pre>
+<p></p>
+Here are the one-line documents that you are to insert into <b>docs02</b>:
+<pre>INSERT INTO docs02 (doc) VALUES
+('word to was used sixteen times in the first three paragraphs of this'),
+('This very fact that computers are good at things that humans are not is'),
+('why you need to become skilled at talking computer language Once you'),
+('learn this new language you can delegate mundane tasks to your partner'),
+('uniquely suited for You bring creativity intuition and inventiveness'),
+('While this book is not intended for professional programmers'),
+('professional programming can be a very rewarding job both financially'),
+('and personally Building useful elegant and clever programs for others'),
+('to use is a very creative activity Your computer or Personal Digital'),
+('Assistant PDA usually contains many different programs from many');
+</pre>
+<p>Here are your <a href="https://www.ranks.nl/stopwords" target="_blank">stop words</a>:
+</p><pre>CREATE TABLE stop_words (word TEXT unique);
+
+INSERT INTO stop_words (word) VALUES 
+('i'), ('a'), ('about'), ('an'), ('are'), ('as'), ('at'), ('be'), 
+('by'), ('com'), ('for'), ('from'), ('how'), ('in'), ('is'), ('it'), ('of'), 
+('on'), ('or'), ('that'), ('the'), ('this'), ('to'), ('was'), ('what'), 
+('when'), ('where'), ('who'), ('will'), ('with');
+</pre>
+<p>
+Here is a sample for the first few expected rows of your reverse index:
+</p><pre>SELECT keyword, doc_id FROM invert02 ORDER BY keyword, doc_id LIMIT 10;
+
+keyword    |  doc_id
+-----------+--------
+activity   |    9    
+and        |    5    
+and        |    8    
+assistant  |    10   
+become     |    3    
+book       |    6    
+both       |    7    
+bring      |    5    
+building   |    8    
+can        |    4    
+</pre>
+
+
+<script src="./ex2_files/jquery-1.11.3.js"></script>
+<script src="./ex2_files/bootstrap.min.js"></script>
+<script src="./ex2_files/jquery-ui.min.js"></script>
+<script src="./ex2_files/jquery.timeago-1.6.3.js"></script>
+<script src="./ex2_files/handlebars-v4.0.2.js"></script>
+<script src="./ex2_files/tmpl.min.js"></script>
+<script src="./ex2_files/tsugiscripts.js"></script>
+<script type="text/javascript">
+    HEARTBEAT_TIMEOUT = setTimeout(doHeartBeat, _TSUGI.heartbeat);
+    tsugiEmbedMenu();
+    $(document).ready(function() { jQuery("time.timeago").timeago(); });
+</script>
+<script>
+$('a').each(function (x) {
+    var href = $(this).attr('href');
+    if ( ! href ) return;
+    if ( ! href.startsWith('#') ) return;
+    var pos = href.indexOf('/?');
+    if ( pos < 1 ) return;
+    // console.dir('Patching broken # href='+href);
+    href = href.substring(0,pos);
+    $(this).attr('href', href);
+});
+$('a').each(function (x) {
+    var href = $(this).attr('href');
+    var sess_name = 'PHPSESSID';
+    var sess_id = 'c0a4af240502ab23fb3b1821c4366a21';
+    if ( ! href ) return;
+    if ( href.startsWith('#') ) return;
+    if ( href.indexOf(sess_name) > 0 ) return;
+    if ( href.startsWith('javascript:') ) return;
+
+    var localurl = true;
+    if ( href.startsWith('http://') ) localurl = false;
+    if ( href.startsWith('https://') ) localurl = false;
+    if ( href.startsWith('//') ) localurl = false;
+
+    if ( href.startsWith(_TSUGI.wwwroot) ) localurl = true;
+    if ( _TSUGI.apphome && href.startsWith(_TSUGI.apphome) ) localurl = true;
+
+    // console.log(href,localurl);
+ 
+    if ( ! localurl ) return;
+    if ( href.indexOf('?') > 0 ) {
+        href = href + '&';
+    } else {
+        href = href + '?';
+    }
+    href = href + sess_name + '=' + sess_id;
+    // console.dir('Patching missing session href='+href);
+    $(this).attr('href', href);
+});
+
+</script>
+
+</div><script src="./ex2_files/webcomponents-lite.js"></script>
+
+</body></html>

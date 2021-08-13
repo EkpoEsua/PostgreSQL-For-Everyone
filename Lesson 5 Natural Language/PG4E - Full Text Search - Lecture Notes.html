@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<!-- saved from url=(0045)https://www.pg4e.com/lectures/05-FullText.php -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>PG4E - Full Text Search - Lecture Notes</title>
+<style>
+body {
+    font-family: sans-serif;
+}
+.headerlink {
+    text-decoration: none;
+}
+</style>
+    </head>
+    <body>
+<h1 id="lecture">PostgreSQL Full Text Lecture Notes</h1>
+<p>
+In this lecture we will explore how PostgreSQL indexes work and how we build indexes
+for large text fields that contain natural language
+and how we can look into those fields and use indexes to search large text fields efficiently.
+</p>
+<p><b>Additional Materials</b>
+</p><ul>
+<li><a href="https://www.pg4e.com/lectures/05-FullText.pptx">PowerPoint slides of the diagrams</a></li>
+<li><a href="https://www.pg4e.com/lectures/05-FullText.sql" target="_blank">Sample SQL commands for this lecture</a></li>
+<li>URL for these notes: <a href="https://www.pg4e.com/lectures/05-FullText" target="_blank">
+https://www.pg4e.com/lectures/05-FullText</a></li>
+</ul>
+<h2 id="data-layout">Row Data Layout
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#data-layout" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#indexes" title="Next Section">⏩</a>
+</h2>
+<p>
+Rows can vary quite a bit in terms of length.
+</p><pre>CREATE TABLE messages
+ (id SERIAL,              -- 4 bytes
+  email TEXT,             -- 10-20 bytes
+  sent_at TIMESTAMPTZ,    -- 8 bytes
+  subject TEXT,           -- 10-100 bytes
+  headers TEXT,           -- 500-1000 bytes
+  body TEXT               -- 50-2000 bytes
+                          -- 600-2500 bytes
+);
+</pre>
+<p>
+Since modifying data is so important to databases, we don't pack store one row after another in a file.
+We arrange the file into blocks (default 8K) and pack the rows into blocks leaving some free space
+to make inserts updates, or deletes possible without needing to rewrite a large file to move
+things up or down.
+</p>
+<div style="float: right; width: 50%; min-width: 250;"><a href="./PG4E - Full Text Search - Lecture Notes_files/postgres-disk-blocks.png" target="_blank">
+<img src="./PG4E - Full Text Search - Lecture Notes_files/postgres-disk-blocks.png" alt="A picture of an 8K PostgreSQL disk block allocation.  The beginning of the block is a set of 
+short pointers that indicate the starting poing (offset) of each of the rows in the block.
+Rows are inserted from the end of the block and the middle space between the rows and offsets
+is free space.
+The link simply opens a larger version of the image in a new window." style="border: 2px solid black; width: 100%;">
+</a></div>
+<p>
+PostgreSQL Organizes Rows into Blocks
+</p><ul>
+    <li>We read an entire block into memory (i.e. not just one row)</li>
+    <li>Easy to compute the start of a block within a file for random access</li>
+    <li>There are the unit of caching in memory</li>
+    <li>They are (often) the unit of locking when we think we are locking a row</li>
+</ul>
+<p></p>
+<p>
+What is the Best Block Size?
+</p><ul>
+    <li>Blocks that are small waste free space / fragmentation</li>
+    <li>Large blocks take more memory in cache be cached for a given memory size</li>
+    <li>Large blocks longer to read and write to/from SSD </li>
+</ul>
+<p>
+If we have a table that contains 1GB (125,000 blocks) of data, a sequential scan from a
+fast SSD takes about 2 seconds while with careful optimization, reading a random block
+can be fast as 1/50000th of a second.  Some SSD drives can read as many as 32 different
+random blocks in a single read request.  If the block is already cached in memory it is even
+faster.  Sequential scans are very bad.
+</p>
+
+<b>References</b>
+<ul>
+    <li>
+<a href="https://malisper.me/the-file-layout-of-postgres-tables/" target="_blank">
+    The File Layout of Postgres Tables</a> (Blog Post)
+    </li>
+    <li>
+        <a href="http://rachbelaid.com/introduction-to-postgres-physical-storage/" target="_blank">
+            Introduction to PostgreSQL physical storage
+        </a> (Blog Post)
+    </li>
+    <li><a href="https://blog.pgaddict.com/posts/postgresql-on-ssd-4kb-or-8kB-pages" target="_blank">
+            PostgreSQL on SSD - 4kB or 8kB pages?
+        </a> (Blog Post)
+    </li>
+</ul>
+<br clear="all">
+<h2 id="indexes">Indexes
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#data-layout" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#indexes" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#index-types" title="Next Section">⏩</a>
+</h2>
+<p>
+Assume each row in the <b>users</b> table is about 1K, we could save a lot of time if somehow we had a hint
+about which row was in which block.
+</p><pre>email              | block
+-------------------+------
+anthony@umich.edu  | 20175
+csev@umich.edu     | 14242
+colleen@umich.edu  | 21456
+
+SELECT name FROM users WHERE email='csev@umich.edu';
+SELECT name FROM users WHERE email='colleen@umich.edu';
+SELECT name FROM users WHERE email='anthony@umich.edu';
+</pre>
+Our index would be about 30 bytes per row which is much smaller than the actual row data.  We store index data in 8K
+blocks as well - as indexes grow in size we need to find was to avoid reading the entire index to look up one key.
+We need an index to the index.  For string logical keys, a B-Tree index is a good, general solution.
+B-Trees keep the keys in sorted order by reorganizing the tree as keys are inserted.
+<p></p>
+<p>
+PostgreSQL Index Types
+</p><ul>
+    <li>B-Tree - The default for many applications - automatically balanced as it grows</li>
+    <li>BRIN - Block Range Index - Smaller / faster if data is mostly sorted</li>
+    <li>Hash - Quick lookup of long key strings</li>
+    <li>GIN - Generalized Inverted Indexes - multiple values in a column</li>
+    <li>GiST - Generalized Search Tree</li>
+    <li>SP-GiST - Space Partitioned Generalized Search Tree</li>
+</ul>
+<p></p>
+<b>References</b>
+<ul>
+    <li><a href="http://www.postgresqltutorial.com/postgresql-indexes/postgresql-index-types/" target="_blank">
+            PostgreSQL Index Types</a> (Blog Post)
+    </li>
+    <li><a href="https://en.wikipedia.org/wiki/B-tree" target="_blank">
+            B-Tree Index</a> (WikiPedia)
+    </li>
+    <li><a href="https://en.wikipedia.org/wiki/Block_Range_Index" target="_blank">
+            Block Range Index</a> (WikiPedia)
+    </li>
+</ul>
+
+<h2 id="index-types">Forward and Inverted Indexes
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#indexes" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#index-types" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#like-google" title="Next Section">⏩</a>
+</h2>
+<p>
+It is not a perfect metaphor but in general there are two categories of indexes:
+</p><ul>
+    <li><b>Forward indexes</b> - You give the index a logical key and it tells you where to find the row
+        that contains the key. (B-Tree, BRIN, Hash)</li>
+    <li><b>Inverse indexes</b> - You give the index a string (query) and the index gives you a list of <i>all</i>
+        the rows that match the query. (GIN, GiST)</li>
+</ul>
+The metaphor is not perfect - because B-tree indexes are stored in sorted order, if you give
+a B-Tree the prefix of a logical key, it can give you a set of rows...
+<p></p><p>
+The most typical use case for an <b>inverse index</b> is to quickly search text documents wit one or a few words.
+</p>
+<b>References</b>
+<ul>
+    <li>
+<a href="https://en.wikipedia.org/wiki/Search_engine_indexing#Inverted_indices" target="_blank">
+    Inverted_indices</a> (Wikipedia)</li>
+</ul>
+<h2 id="like-google">
+    Similar to Google Search
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#index-types" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#like-google" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#invert-sql" title="Next Section">⏩</a>
+</h2>
+<ul>
+    <li>Crawl: Retrieve documents, parse them and create an <b>inverted index</b></li>
+    <li>Search: Take keywords, find the documents with the words then rank them and present results</li>
+</ul>
+<b>References</b>
+<ul>
+    <li><a href="https://youtu.be/6x0cAzQ7PVs?t=559" traget="_blank" savefrom_lm_index="0" savefrom_lm="1">
+            Google I/O '08 Keynote by Marissa Mayer</a><span style="padding: 0; margin: 0; margin-left: 5px;"><a href="http://savefrom.net/?url=https%3A%2F%2Fyoutu.be%2F6x0cAzQ7PVs%3Ft%3D559&amp;utm_source=chameleon&amp;utm_medium=extensions&amp;utm_campaign=link_modifier" target="_blank" title="Get a direct link" savefrom_lm="1" savefrom_lm_is_link="1" style="background-image: url(&quot;data:image/gif;base64,R0lGODlhEAAQAOZ3APf39+Xl5fT09OPj4/Hx8evr6/3+/u7u7uDh4OPi497e3t7e3/z8/P79/X3GbuXl5ubl5eHg4WzFUfb39+Pj4lzGOV7LOPz7+/n6+vn5+ZTLj9/e387Ozt7f3/7+/vv7/ISbePn5+m/JV1nRKXmVbkCnKVrSLDqsCuDh4d/e3uDn3/z7/H6TdVeaV1uSW+bn5v39/eXm5eXm5kyHP/f39pzGmVy7J3yRd9/f3mLEKkXCHJbka2TVM5vaZn6Wdfn6+YG/c/r5+ZO/jeLi41aHTIeageLn4f39/vr6+kzNG2PVM5i+lomdf2CXYKHVmtzo2YXNeDqsBebl5uHh4HDKWN3g3kKqEH6WeZHTXIPKdnSPbv79/pfmbE7PHpe1l4O8dTO5DODg4VDLIlKUUtzo2J7SmEWsLlG4NJbFjkrJHP7+/VK5Nfz8+zmnC3KKa+Hg4OHh4Y63j/3+/eDg4Ojo6P///8DAwP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAHcALAAAAAAQABAAAAfWgHd2g4SFhYJzdYqLjIpzgx5bBgYwHg1Hk2oNDXKDFwwfDF5NLmMtcStsn4MhGT8YS04aGmU1QRhIGYMTADQAQlAODlloAMYTgwICRmRfVBISIkBPKsqDBAREZmcVFhYVayUz2IMHB1dWOmImI2lgUVrmgwUFLzdtXTxKSSduMfSD6Aik48MGlx05SAykM0gKhAAPAhTB0oNFABkPHg5KMIBCxzlMQFQZMGBIggSDpsCJgGDOmzkIUCAIM2dOhEEcNijQuQDHgg4KOqRYwMGOIENIB90JBAA7&quot;); background-repeat: no-repeat; width: 16px; height: 16px; display: inline-block; border: none; text-decoration: none; padding: 0px; position: relative;"></a></span></li>
+    <li><a href="https://www.youtube.com/watch?v=BNHR6IQJGZs" target="_blank" savefrom_lm_index="0" savefrom_lm="1">
+            How Search Works - Matt Cutts</a><span style="padding: 0; margin: 0; margin-left: 5px;"><a href="http://savefrom.net/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DBNHR6IQJGZs&amp;utm_source=chameleon&amp;utm_medium=extensions&amp;utm_campaign=link_modifier" target="_blank" title="Get a direct link" savefrom_lm="1" savefrom_lm_is_link="1" style="background-image: url(&quot;data:image/gif;base64,R0lGODlhEAAQAOZ3APf39+Xl5fT09OPj4/Hx8evr6/3+/u7u7uDh4OPi497e3t7e3/z8/P79/X3GbuXl5ubl5eHg4WzFUfb39+Pj4lzGOV7LOPz7+/n6+vn5+ZTLj9/e387Ozt7f3/7+/vv7/ISbePn5+m/JV1nRKXmVbkCnKVrSLDqsCuDh4d/e3uDn3/z7/H6TdVeaV1uSW+bn5v39/eXm5eXm5kyHP/f39pzGmVy7J3yRd9/f3mLEKkXCHJbka2TVM5vaZn6Wdfn6+YG/c/r5+ZO/jeLi41aHTIeageLn4f39/vr6+kzNG2PVM5i+lomdf2CXYKHVmtzo2YXNeDqsBebl5uHh4HDKWN3g3kKqEH6WeZHTXIPKdnSPbv79/pfmbE7PHpe1l4O8dTO5DODg4VDLIlKUUtzo2J7SmEWsLlG4NJbFjkrJHP7+/VK5Nfz8+zmnC3KKa+Hg4OHh4Y63j/3+/eDg4Ojo6P///8DAwP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAHcALAAAAAAQABAAAAfWgHd2g4SFhYJzdYqLjIpzgx5bBgYwHg1Hk2oNDXKDFwwfDF5NLmMtcStsn4MhGT8YS04aGmU1QRhIGYMTADQAQlAODlloAMYTgwICRmRfVBISIkBPKsqDBAREZmcVFhYVayUz2IMHB1dWOmImI2lgUVrmgwUFLzdtXTxKSSduMfSD6Aik48MGlx05SAykM0gKhAAPAhTB0oNFABkPHg5KMIBCxzlMQFQZMGBIggSDpsCJgGDOmzkIUCAIM2dOhEEcNijQuQDHgg4KOqRYwMGOIENIB90JBAA7&quot;); background-repeat: no-repeat; width: 16px; height: 16px; display: inline-block; border: none; text-decoration: none; padding: 0px; position: relative;"></a></span></li>
+</ul>
+
+<h2 id="invert-sql">Inverted Indexes - Using only SQL
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#like-google" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#invert-sql" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#inverted" title="Next Section">⏩</a>
+</h2>
+<div style="float: right; width: 25%; min-width: 250;"><a href="./PG4E - Full Text Search - Lecture Notes_files/inverted-index.png" target="_blank">
+<img src="./PG4E - Full Text Search - Lecture Notes_files/inverted-index.png" alt="This shows three documents with ids of 1, 2, and 3 and an inverted index with columns labelled &#39;keyword&#39; and &#39;doc_id&#39;.
+All the items in this image are in the code samples below.
+The link simply opens a larger version of the image in a new window." style="border: 2px solid black; width: 100%;">
+</a></div>
+<p>We can split long text columns into space-delimited words using PostgreSQL's split-like function
+called <b>string_to_array()</b>.  And then we can use the PostgresSQL <b>unnest()</b> function to turn
+the resulting array into separate rows.
+</p><pre>pg4e=&gt; string_to_array('Hello world', ' ');
+ string_to_array
+-----------------
+ {Hello,world}
+
+pg4e=&gt; unnest(string_to_array('Hello world', ' '));
+ unnest
+--------
+ Hello
+ world
+</pre>
+After that, it is just a few <b>SELECT DISTINCT</b> statements and we can create and use an inverted index.
+<pre>CREATE TABLE docs (id SERIAL, doc TEXT, PRIMARY KEY(id));
+INSERT INTO docs (doc) VALUES
+('This is SQL and Python and other fun teaching stuff'),
+('More people should learn SQL from UMSI'),
+('UMSI also teaches Python and also SQL');
+
+CREATE TABLE docs_gin (
+  keyword TEXT,
+  doc_id INTEGER REFERENCES docs(id) ON DELETE CASCADE
+);
+
+<a href="https://www.pg4e.com/lectures/05-FullText.sql" target="_blank">...</a>
+
+pg4e=&gt; select * from docs_gin;
+ keyword  | doc_id
+----------+--------
+ Python   |      1
+ SQL      |      1
+ This     |      1
+ stuff    |      1
+ teaching |      1
+ More     |      2
+ SQL      |      2
+ UMSI     |      2
+ from     |      2
+ learn    |      2
+ people   |      2
+ should   |      2
+ Python   |      3
+ SQL      |      3
+ UMSI     |      3
+ also     |      3
+ and      |      3
+ teaches  |      3
+(22 rows)
+
+</pre>
+<b>References</b>
+<ul>
+    <li> <a href="https://stackoverflow.com/questions/29419993/split-column-into-multiple-rows-in-postgres" target="_blank">Split column into multiple rows in Postgres</a> (Stackoverflow)</li>
+</ul>
+
+<br clear="all">
+<h2 id="inverted">Inverted Indexes in PostgreSQL
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#invert-sql" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#inverted" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#stemming" title="Next Section">⏩</a>
+</h2>
+<ul>
+    <li>Generalized Inverse Index (GIN)</li>
+    <li>Generalized Search Tree (GiST)</li>
+</ul>
+<p>
+<i>GIN indexes are the preferred text search index type. </i>
+Advantages: exact matches, efficient on lookup/search.  Disadvantages: can be costly when inserting or updating data
+because every new word is inserted somewhere in the index and can get large.
+Like the B-Tree, the GIN is the usual "go-to" inverted index and GiST is used in more special cases.
+The previous example was a rough approximation of a GIN index.
+</p><p>
+Hashing is used to reduce the size of and cost to update the GiST.
+<i>
+A GiST index is lossy, meaning that the index might produce false matches, and it is necessary to check the actual table row to eliminate such false matches. (PostgreSQL does this automatically when needed.)
+</i>
+The indexes have equivalent functionality and will return the same rows - but
+there may be performance / storage tradeoffs between GIN and GiST.
+</p>
+<p>
+Both GIN and GiST want to know something about the type of array data it will be indexing
+and the kinds of operations that we will be using in <b>WHERE</b> clauses.  In the example
+below we are indexing arrays of strings (i.e. text[]) and will be using the "&lt;@" operator
+(contained within).
+</p>
+<p>
+We can build a simple GIN index like the manual index above:
+</p><pre>CREATE TABLE docs (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE INDEX gin1 ON docs USING gin(string_to_array(doc, ' ')  array_ops);
+
+INSERT INTO docs (doc) VALUES
+('This is SQL and Python and other fun teaching stuff'),
+('More people should learn SQL from UMSI'),
+('UMSI also teaches Python and also SQL');
+
+</pre>
+The &lt;@ is looking for an intersection between two arrays
+<pre>SELECT id, doc FROM docs WHERE '{learn}' &lt;@ string_to_array(doc, ' ');
+
+ id |                  doc
+----+----------------------------------------
+  2 | More people should learn SQL from UMSI
+
+EXPLAIN SELECT id, doc FROM docs WHERE '{learn}' &lt;@ string_to_array(doc, ' ');
+
+                                 QUERY PLAN
+----------------------------------------------------------------------------
+ Bitmap Heap Scan on docs  (cost=12.05..21.53 rows=6 width=32)
+   Recheck Cond: ('{learn}'::text[] &lt;@ string_to_array(doc, ' '::text))
+   -&gt;  Bitmap Index Scan on gin1  (cost=0.00..12.05 rows=6 width=0)
+         Index Cond: ('{learn}'::text[] &lt;@ string_to_array(doc, ' '::text))
+
+</pre>
+
+
+<b>References</b>
+<ul>
+    <li><a href="https://www.postgresql.org/docs/11/textsearch-indexes.html" target="_blank">
+            GIN and Gist Indexes in PostgreSQL</a></li>
+</ul>
+<br clear="all">
+<h2 id="stemming">Inverted Indexes of Natural Language - Stemming and Stop Words
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#inverted" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#stemming" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#text-search" title="Next Section">⏩</a>
+</h2>
+<div style="float: right; width: 25%; min-width: 250;"><a href="./PG4E - Full Text Search - Lecture Notes_files/inverted-index-stop.png" target="_blank">
+<img src="./PG4E - Full Text Search - Lecture Notes_files/inverted-index-stop.png" alt="This shows three documents with ids of 1, 2, and 3, a stop word table and an inverted index with columns labelled &#39;keyword&#39; and &#39;doc_id&#39;.
+All the items in this image are in the code samples below.
+The link simply opens a larger version of the image in a new window." style="border: 2px solid black; width: 100%;">
+</a></div>
+<p>
+To take advantage of the "naruralness" of natural language, we need to ignore words that convey no meaning
+and consistently reduce variations of words with equivalent meanings down to a single "stem word".
+</p>
+<p>
+Recall this failure
+</p><pre>SELECT DISTINCT id, doc FROM docs AS D
+JOIN docs_gin AS G ON D.id = G.doc_id
+WHERE G.keyword = ANY(string_to_array('Search for Lemons and Neons', ' '));
+
+ id |                         doc
+----+-----------------------------------------------------
+  1 | This is SQL and Python and other fun teaching stuff
+  3 | UMSI also teaches Python and also SQL
+</pre>
+The word "and" contributed no real meaning to our query.  And it took up valuable space in our GIN
+index. So we put it on the
+<a href="https://en.wikipedia.org/wiki/Stop_words" target="_blank">stop word</a> list.
+Lets implement stop word and
+<a href="https://en.wikipedia.org/wiki/Stemming" target="_blank">stemming</a> capabilities
+by hand and then just use PostgreSQL features to build a natural language search.
+<pre>SELECT * FROM stop_words;
+ word
+------
+ is
+ this
+ and
+
+SELECT * FROM docs_stem;
+   word   | stem
+----------+-------
+ teaching | teach
+ teaches  | teach
+
+<a href="https://www.pg4e.com/lectures/05-FullText.sql" target="_blank">...</a>
+
+SELECT * FROM docs_gin;
+
+ keyword | doc_id
+---------+--------
+ also    |      3
+ from    |      2
+ fun     |      1
+ learn   |      2
+ more    |      2
+ other   |      1
+ people  |      2
+ python  |      1
+ python  |      3
+ should  |      2
+ sql     |      3
+ sql     |      1
+ sql     |      2
+ stuff   |      1
+ teach   |      3
+ teach   |      1
+ this    |      1
+ umsi    |      2
+ umsi    |      3
+(19 rows)
+</pre>
+
+<p>
+Stemming and stop words (and the meaning of "meaning") depend on which language is stored in the text column.
+The default install of PostgreSQL knows the rules for
+a few languages and more can be installed:
+</p><pre>SELECT cfgname FROM pg_ts_config;
+
+  cfgname
+------------
+ simple
+ danish
+ dutch
+ english
+ finnish
+ french
+ german
+ hungarian
+ italian
+ norwegian
+ portuguese
+ romanian
+ russian
+ spanish
+ swedish
+ turkish
+(16 rows)
+</pre>
+
+<h2 id="text-search">Text Search Functions
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#stemming" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#text-search" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#natural" title="Next Section">⏩</a>
+</h2>
+<p>
+PostgreSQL provides some functions that turn a text document/string into an "array" with stemming, stop words, and other
+language-oriented features.
+</p>
+<p>
+<b>ts_vector()</b> returns a list of words that represent the document.
+<b>ts_query()</b> returns a list of words with operators to representaions various logical combinations of words
+        much like
+        <a href="https://www.google.com/advanced_search" target="_blank">Google's Advanced Search</a>.
+</p><pre>SELECT to_tsvector('english', 'UMSI also teaches Python and also SQL');
+
+                   to_tsvector
+--------------------------------------------------
+ 'also':2,6 'python':4 'sql':7 'teach':3 'umsi':1
+
+SELECT to_tsquery('english', 'teaching');
+
+ to_tsquery
+------------
+ 'teach'
+</pre>
+<p></p>
+<p>
+In a <b>WHERE</b> clause we use the
+<b>@@</b> operator to ask is a <b>ts_query</b> matches a <b>ts_vector</b>.
+</p><p>
+    </p><pre>SELECT to_tsquery('english', 'teaching') @@
+  to_tsvector('english', 'UMSI also teaches Python and also SQL');
+
+ ?column?
+----------
+ t
+</pre>
+<p></p>
+<b>References</b>
+<ul>
+    <li><a href="https://www.postgresql.org/docs/11/textsearch-intro.html" target="_blank">
+            Introduction to Text Search</a> (PostgreSQL)</li>
+    <li><a href="https://www.postgresql.org/docs/11/functions-textsearch.html" target="_blank">
+            Operators and functions that work with ts_query and ts_vector</a> (PostgreSQL)</li>
+</ul>
+<h2 id="natural">Making a Natural Language Inverted Index with PostgreSQL
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#text-search" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#natural" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#list-index" title="Next Section">⏩</a>
+</h2>
+<p>
+As you might expect, letting PostgreSQL do all the work is the easy part.
+Stop words and stems are all handled in the "ts_" functions.  And the
+GIN knows what operations you will be using automatically when you
+pass in a <b>ts_vector</b>.
+</p><pre>CREATE TABLE docs (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE INDEX gin1 ON docs USING gin(to_tsvector('english', doc));
+
+INSERT INTO docs (doc) VALUES
+('This is SQL and Python and other fun teaching stuff'),
+('More people should learn SQL from UMSI'),
+('UMSI also teaches Python and also SQL');
+
+SELECT id, doc FROM docs WHERE
+    to_tsquery('english', 'learn') @@ to_tsvector('english', doc);
+
+ id |                  doc
+----+----------------------------------------
+  2 | More people should learn SQL from UMSI
+
+EXPLAIN SELECT id, doc FROM docs WHERE
+    to_tsquery('english', 'learn') @@ to_tsvector('english', doc);
+
+                                      QUERY PLAN
+--------------------------------------------------------------------------------------
+ Bitmap Heap Scan on docs  (cost=12.05..23.02 rows=6 width=36)
+   Recheck Cond: ('''learn'''::tsquery @@ to_tsvector('english'::regconfig, doc))
+   -&gt;  Bitmap Index Scan on gin1  (cost=0.00..12.05 rows=6 width=0)
+         Index Cond: ('''learn'''::tsquery @@ to_tsvector('english'::regconfig, doc))
+</pre>
+
+
+<p><b>References</b></p>
+
+<ul>
+<li><a href="https://www.postgresql.org/docs/10/textsearch-controls.html#TEXTSEARCH-RANKING" target="_blank">
+        Controlling Text Search</a> (PostgreSQL)</li>
+<li><a href="https://stackoverflow.com/questions/4014519/fulltext-query-with-scores-ranks-in-postgresql/4014625#4014625" target="_blank">FULLTEXT query with scores/ranks in PostgreSQL</a> (Stackoverflow)</li>
+<li><a href="https://stackoverflow.com/questions/12933805/best-way-to-use-postgresql-full-text-search-ranking" target="_blank">Best way to use PostgreSQL full text search ranking</a> (Stackoverflow) </li>
+</ul>
+
+<h2 id="list-index">There is a lot of ways to index and search in PostgreSQL
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#natural" title="Previous Section">⏪</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#list-index" title="Link to this Section">📖</a>
+<a class="headerlink" href="https://www.pg4e.com/lectures/05-FullText.php#lecture" title="Go to the beginning of the document">🏠</a>
+</h2>
+<p>
+You can ask PostgreSQL the different index / <b>WHERE</b> clause operator combinations
+it supports.  There are quite a few and they can change from one PostgreSQL version
+to another.
+</p><pre>SELECT am.amname AS index_method, opc.opcname AS opclass_name
+    FROM pg_am am, pg_opclass opc
+    WHERE opc.opcmethod = am.oid
+    ORDER BY index_method, opclass_name;
+
+ index_method |      opclass_name
+--------------+------------------------
+ brin         | abstime_minmax_ops
+ brin         | bit_minmax_ops
+ brin         | box_inclusion_ops
+ ...
+ brin         | uuid_minmax_ops
+ brin         | varbit_minmax_ops
+ btree        | abstime_ops
+ btree        | array_ops
+ ...
+ btree        | varbit_ops
+ btree        | varchar_ops
+ btree        | varchar_pattern_ops
+ gin          | array_ops
+ gin          | jsonb_ops
+ gin          | jsonb_path_ops
+ gin          | tsvector_ops
+ gist         | box_ops
+ gist         | circle_ops
+ ...
+ gist         | tsvector_ops
+ hash         | abstime_ops
+ hash         | aclitem_ops
+ hash         | array_ops
+ ...
+ hash         | varchar_pattern_ops
+ hash         | xid_ops
+ spgist       | box_ops
+ spgist       | inet_ops
+ spgist       | kd_point_ops
+ spgist       | poly_ops
+ spgist       | quad_point_ops
+ spgist       | range_ops
+(134 rows)
+</pre>
+<footer style="margin-top: 50px;">
+<hr>
+<p>
+Copyright 
+<a href="https://www.dr-chuck.com/" target="_blank">
+Charles R. Severance</a>, CC0 - 
+You are welcome to adapt, reuse or reference this material with or without attribution.
+</p>
+<p>
+Feel free to help improve this lecture at 
+<a href="https://www.pg4e.com/lectures/05-FullText" target="_blank">GitHub</a>.
+</p>
+</footer>
+</body></html>

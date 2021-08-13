@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)https://www.pg4e.com/tools/sql/?PHPSESSID=4c26c4b7c670cef98163d1e1adc7d886 -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>body {transition: opacity ease-in 0.2s; } 
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; } 
+</style>
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PG4E - Postgres for Everybody</title>
+<script>
+ var _TSUGI = {
+            context_title: "Postgres for Everybody",
+            link_title: "Autograder: String Array GIN Index",
+            user_displayname: "Esua Ekpo",
+            ajax_session: "PHPSESSID=4c26c4b7c670cef98163d1e1adc7d886",
+heartbeat: 1500000,
+heartbeat_url: "https://www.pg4e.com/tsugi/util/heartbeat?msec=1500000&PHPSESSID=4c26c4b7c670cef98163d1e1adc7d886",
+rest_path: {"parent":"\/tools\/sql","base_url":"https:\/\/www.pg4e.com","controller":"","extra":"","action":false,"parameters":[],"current":"\/tools\/sql","full":"\/tools\/sql"},
+spinnerUrl: "https://static.tsugi.org/img/spinner.gif",
+staticroot: "https://static.tsugi.org",
+apphome: "https://www.pg4e.com",
+wwwroot: "https://www.pg4e.com/tsugi",
+websocket_url: false,
+websocket_token: false,
+window_close_message: "Application complete",
+session_expire_message: "Your session has expired"
+
+}
+</script>
+        <!-- Tiny bit of JS -->
+        <script src="./ex3_files/tsugiscripts_head.js"></script>
+        <!-- Le styles -->
+        <link href="./ex3_files/bootstrap.min.css" rel="stylesheet">
+        <link href="./ex3_files/jquery-ui.min.css" rel="stylesheet">
+                <link href="./ex3_files/all.css" rel="stylesheet">
+        <link href="./ex3_files/v4-shims.css" rel="stylesheet">
+        <style>:root {--primary:#336791;
+--primary-menu:#336791;
+--primary-border:#306087;
+--primary-darker:#2e5d83;
+--primary-darkest:#2b5578;
+--background-color:#FFFFFF;
+--secondary:#EEEEEE;
+--secondary-menu:#EEEEEE;
+--text:#111111;
+--text-light:#5E5E5E;
+--font-family:'Open Sans', Corbel, Avenir, 'Lucida Grande', 'Lucida Sans', sans-serif;
+--font-size:14px;
+}</style>
+          <link href="./ex3_files/tsugi2.css" rel="stylesheet">
+
+          <style>
+                        </style>
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/html5shiv/html5shiv.js"></script>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/respond/respond.min.js"></script>
+        <![endif]-->
+
+    <script type="text/javascript">CSRF_TOKEN = "6110ae90f1514";</script>
+<script type="text/javascript">LTI_PARENT_IFRAME_ID = "tsugi_element_id_c9d33798";</script>
+</head>
+<body prefix="oer: http://oerschema.org" style="padding-top: 5.93rem;">
+<div id="body_container" class="container">
+<script>
+if (window!=window.top) {
+    document.getElementById("body_container").className = "container-fluid";
+} else {
+    document.getElementById("body_container").className = "container";
+}
+</script>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation" id="tsugi_main_nav_bar" style="display: block;">  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="javascript:window.location.href=&#39;%2Flessons%2Fweek5&#39;;">Done</a>
+    </div>
+    <div class="navbar-collapse collapse">
+    </div> <!--/.nav-collapse -->
+  </div> <!--container -->
+</nav>
+<script>
+if ( ! inIframe() ) {
+  document.getElementById('tsugi_main_nav_bar').style.display = 'block';
+  document.getElementsByTagName('body')[0].style.paddingTop = '5.93rem';
+} else {
+  document.getElementsByTagName('body')[0].style.paddingTop = '1.0rem';
+}
+</script>
+<!-- Modal -->
+<div id="tsugi_settings_dialog" class="modal fade" role="dialog" style="display: none;">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span class="fa fa-close" aria-hidden="true"></span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title">Autograder: String Array GIN Index Settings</h4>
+      </div>
+      <div class="modal-body">
+                  <img id="tsugi_settings_spinner" src="./ex3_files/spinner.gif" style="display: none">
+            <span id="tsugi_settings_save_fail" class="text-danger" style="display:none;">Unable to save settings</span>
+            <p>Exercise is set to Inverted string array index using GIN</p><p>There is currently no due date/time for this assignment.</p>
+              </div>
+    </div>
+
+  </div>
+</div>
+<div id="flashmessages"></div><h1>String Array GIN Index</h1>
+<p>In this assignment, you will create a table of documents and then
+produce a GIN-based <b>text[]</b> reverse index
+for those documents that identifies each document
+which contains a particular word using SQL.
+</p>
+<p>
+FYI: In <i>contrast</i> with the provided sample SQL, you will
+map all the words
+in the GIN index to <i>lower</i> case (i.e. Python, PYTHON, and python
+should all end up as "python" in the GIN index).
+</p>
+<p>Connection Details:</p>
+<form name="myform" method="post"><input type="hidden" name="PHPSESSID" value="4c26c4b7c670cef98163d1e1adc7d886">
+<p>
+Host: <input type="text" name="pdo_host" value="pg.pg4e.com" id="pdo_host" disabled=""><br>
+Port: <input type="text" name="pdo_port" value="5432" id="pdo_port" disabled=""><br>
+Database: <input type="text" name="pdo_database" value="pg4e_73e62c98b5" id="pdo_database" disabled=""><br>
+User: <input type="text" name="pdo_user" value="pg4e_73e62c98b5" disabled=""><br>
+Password: <span id="pass" style="display:none"><input type="text" name="pdo_pass" id="pdo_pass" value="pg4e_p_2d584db4d3fe9a8"></span> (<a href="https://www.pg4e.com/tools/sql/?PHPSESSID=4c26c4b7c670cef98163d1e1adc7d886#" onclick="$(&#39;#pass&#39;).toggle();return false;">hide/show</a> <a href="https://www.pg4e.com/tools/sql/?PHPSESSID=4c26c4b7c670cef98163d1e1adc7d886#" onclick="copyToClipboard(this, &#39;pg4e_p_2d584db4d3fe9a8&#39;);return false;">copy</a>) <br>
+
+<input type="submit" name="check" onclick="$(&#39;#submitspinner&#39;).show();return true;" value="Check Answer">
+<img id="submitspinner" src="./ex3_files/spinner.gif" style="display:none">
+</p></form>
+<p></p>
+<p>
+Here is the the <b>psql</b> command to access your database:
+</p><pre>psql -h pg.pg4e.com -p 5432 -U pg4e_73e62c98b5 pg4e_73e62c98b5<!--
+Python Notebook:
+%load_ext sql
+%config SqlMagic.autocommit=False
+%sql postgres://pg4e_73e62c98b5:replacewithsecret@pg.pg4e.com:5432/pg4e_73e62c98b5-->
+</pre>
+<p></p>
+<p>
+The goal of this assignment is to run these queries:
+</p><pre>SELECT id, doc FROM docs03 WHERE '{inventiveness}' &lt;@ string_to_array(lower(doc), ' ');
+EXPLAIN SELECT id, doc FROM docs03 WHERE '{inventiveness}' &lt;@ string_to_array(lower(doc), ' ');</pre>
+and (a) get the correct document(s) and (b) use the GIN index (i.e. not use a sequential scan).
+<pre>CREATE TABLE docs03 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE INDEX array03 ON docs03 USING gin(...);
+</pre>
+<p></p>
+<p>
+If you get an <b>operator class</b> error on your <b>CREATE INDEX</b> check the instructions
+below for the solution.
+</p>
+<p>
+Here are the one-line documents that you are to insert into <b>docs03</b>:
+</p><pre>INSERT INTO docs03 (doc) VALUES
+('word to was used sixteen times in the first three paragraphs of this'),
+('This very fact that computers are good at things that humans are not is'),
+('why you need to become skilled at talking computer language Once you'),
+('learn this new language you can delegate mundane tasks to your partner'),
+('uniquely suited for You bring creativity intuition and inventiveness'),
+('While this book is not intended for professional programmers'),
+('professional programming can be a very rewarding job both financially'),
+('and personally Building useful elegant and clever programs for others'),
+('to use is a very creative activity Your computer or Personal Digital'),
+('Assistant PDA usually contains many different programs from many');
+</pre>
+<p>
+You should also insert a number of filler rows into the table to make sure
+PostgreSQL uses its index:
+</p><pre>INSERT INTO docs03 (doc) SELECT 'Neon ' || generate_series(10000,20000);
+</pre>
+<p></p>
+<p>
+It might take from a few seconds to a minute or two before PostgreSQL catches up with its indexing.
+The autograder won't work if the index is incomplete.  If the <b>EXPLAIN</b> command says that it
+is using <b>Seq Scan</b> - the index has not completed yet.
+Run the above <b>EXPLAIN</b> multiple times if necessary until you verify that PostgreSQL has finished making the index:
+</p><pre>pg4e=&gt; EXPLAIN SELECT id, doc FROM docs03 WHERE '{inventiveness}' &lt;@ string_to_array(lower(doc), ' ');
+                                   QUERY PLAN
+--------------------------------------------------------------------------------
+ Seq Scan on docs03  (cost=0.00..177.24 rows=35 width=36)
+ Filter: ('{inventiveness}'::text[] &lt;@ string_to_array(lower(doc), ' '::text))
+(2 rows)
+
+
+<b>TIME PASSES......</b>
+
+
+pg4e=&gt; EXPLAIN SELECT id, doc FROM docs03 WHERE '{inventiveness}' &lt;@ string_to_array(lower(doc), ' ');
+                                        QUERY PLAN
+------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on docs03  (cost=12.02..21.97 rows=3 width=15)
+ Recheck Cond: ('{inventiveness}'::text[] &lt;@ string_to_array(lower(doc), ' '::text))
+   -&gt;  Bitmap Index Scan on array03  (cost=0.00..12.02 rows=3 width=0)
+   Index Cond: ('{inventiveness}'::text[] &lt;@ string_to_array(lower(doc), ' '::text))
+(4 rows)
+
+pg4e=&gt;
+</pre>
+<h2>References</h2>
+<p>
+Here are some links on monitoring the building of indexes:
+</p><ul>
+<li><p><a href="https://wiki.postgresql.org/wiki/Index_Maintenance" target="_blank">PostgreSQL Wiki:
+Index Maintenance</a></p></li>
+<li><p><a href="https://dba.stackexchange.com/a/161992/206399" target="_blank">Stackoverflow:
+Monitoring Progress of Index Construction in PostgreSQL</a></p></li>
+</ul>
+
+<script src="./ex3_files/jquery-1.11.3.js"></script>
+<script src="./ex3_files/bootstrap.min.js"></script>
+<script src="./ex3_files/jquery-ui.min.js"></script>
+<script src="./ex3_files/jquery.timeago-1.6.3.js"></script>
+<script src="./ex3_files/handlebars-v4.0.2.js"></script>
+<script src="./ex3_files/tmpl.min.js"></script>
+<script src="./ex3_files/tsugiscripts.js"></script>
+<script type="text/javascript">
+    HEARTBEAT_TIMEOUT = setTimeout(doHeartBeat, _TSUGI.heartbeat);
+    tsugiEmbedMenu();
+    $(document).ready(function() { jQuery("time.timeago").timeago(); });
+</script>
+<script>
+$('a').each(function (x) {
+    var href = $(this).attr('href');
+    if ( ! href ) return;
+    if ( ! href.startsWith('#') ) return;
+    var pos = href.indexOf('/?');
+    if ( pos < 1 ) return;
+    // console.dir('Patching broken # href='+href);
+    href = href.substring(0,pos);
+    $(this).attr('href', href);
+});
+$('a').each(function (x) {
+    var href = $(this).attr('href');
+    var sess_name = 'PHPSESSID';
+    var sess_id = '4c26c4b7c670cef98163d1e1adc7d886';
+    if ( ! href ) return;
+    if ( href.startsWith('#') ) return;
+    if ( href.indexOf(sess_name) > 0 ) return;
+    if ( href.startsWith('javascript:') ) return;
+
+    var localurl = true;
+    if ( href.startsWith('http://') ) localurl = false;
+    if ( href.startsWith('https://') ) localurl = false;
+    if ( href.startsWith('//') ) localurl = false;
+
+    if ( href.startsWith(_TSUGI.wwwroot) ) localurl = true;
+    if ( _TSUGI.apphome && href.startsWith(_TSUGI.apphome) ) localurl = true;
+
+    // console.log(href,localurl);
+ 
+    if ( ! localurl ) return;
+    if ( href.indexOf('?') > 0 ) {
+        href = href + '&';
+    } else {
+        href = href + '?';
+    }
+    href = href + sess_name + '=' + sess_id;
+    // console.dir('Patching missing session href='+href);
+    $(this).attr('href', href);
+});
+
+</script>
+
+</div><script src="./ex3_files/webcomponents-lite.js"></script>
+
+</body></html>
