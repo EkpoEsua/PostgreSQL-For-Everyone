@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- saved from url=(0041)https://www.pg4e.com/assn/pg4e_pyaw_es.md -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>body {transition: opacity ease-in 0.2s; } 
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; } 
+</style>
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PG4E - Postgres for Everybody</title>
+<script>
+ var _TSUGI = {
+            ajax_session: false,
+heartbeat: 1500000,
+heartbeat_url: "https://www.pg4e.com/tsugi/util/heartbeat?msec=1500000",
+rest_path: {"parent":"\/assn","base_url":"https:\/\/www.pg4e.com","controller":"pg4e_pyaw_es.md","extra":"","action":false,"parameters":[],"current":"\/assn\/pg4e_pyaw_es.md","full":"\/assn\/pg4e_pyaw_es.md"},
+spinnerUrl: "https://static.tsugi.org/img/spinner.gif",
+staticroot: "https://static.tsugi.org",
+apphome: "https://www.pg4e.com",
+wwwroot: "https://www.pg4e.com/tsugi",
+websocket_url: false,
+websocket_token: false,
+react_token: "aq7i8mhupm75fddcpv8h76etuh",
+window_close_message: "Application complete",
+session_expire_message: "Your session has expired"
+
+}
+</script>
+        <!-- Tiny bit of JS -->
+        <script src="./lecture_files/tsugiscripts_head.js"></script>
+        <!-- Le styles -->
+        <link href="./lecture_files/bootstrap.min.css" rel="stylesheet">
+        <link href="./lecture_files/jquery-ui.min.css" rel="stylesheet">
+                <link href="./lecture_files/all.css" rel="stylesheet">
+        <link href="./lecture_files/v4-shims.css" rel="stylesheet">
+        <style>:root {--primary:#336791;
+--primary-menu:#336791;
+--primary-border:#306087;
+--primary-darker:#2e5d83;
+--primary-darkest:#2b5578;
+--background-color:#FFFFFF;
+--secondary:#EEEEEE;
+--secondary-menu:#EEEEEE;
+--text:#111111;
+--text-light:#5E5E5E;
+--font-family:'Open Sans', Corbel, Avenir, 'Lucida Grande', 'Lucida Sans', sans-serif;
+--font-size:14px;
+}</style>
+          <link href="./lecture_files/tsugi2.css" rel="stylesheet">
+
+          <style>
+                        </style>
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/html5shiv/html5shiv.js"></script>
+          <script src="http://localhost/tsugi/vendor/tsugi/lib/static/js/respond/respond.min.js"></script>
+        <![endif]-->
+
+    <script type="text/javascript">CSRF_TOKEN = "TODORemoveThis";</script>
+</head>
+<body prefix="oer: http://oerschema.org" style="padding-top: 5.93rem;">
+<div id="body_container" class="container">
+<script>
+if (window!=window.top) {
+    document.getElementById("body_container").className = "container-fluid";
+} else {
+    document.getElementById("body_container").className = "container";
+}
+</script>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation" id="tsugi_main_nav_bar" style="display: block;">  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://www.pg4e.com/" target="_self">PG4E</a>
+    </div>
+    <div class="navbar-collapse collapse">
+      <ul class="nav navbar-nav navbar-main">
+        <li><a href="https://www.pg4e.com/lessons" target="_self">Lessons</a></li>
+        <li><a href="https://www.pg4e.com/discussions" target="_self">Discussions</a></li>
+        <li><a href="https://www.pg4e.com/assignments" target="_self">My Progress</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="http://www.dr-chuck.com/" target="_blank">Instructor</a></li>
+        <li class="dropdown">
+          <a href="https://www.pg4e.com/assn/pg4e_pyaw_es.md#" class="dropdown-toggle dropdown-img" data-toggle="dropdown"><img src="./lecture_files/unnamed.png" title="User Profile Menu - Includes logout" style="height: 2em;"> <span class="fa fa-caret-down" aria-hidden="true"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="https://www.pg4e.com/profile" target="_self">Profile</a></li>
+            <li><a href="https://www.pg4e.com/map" target="_self">Map</a></li>
+            <li><a href="https://www.pg4e.com/tsugi/settings" target="_self">LMS Integration</a></li>
+            <li><a href="https://www.tsugicloud.org/" target="_blank">Free App Store</a></li>
+            <li><a href="https://www.pg4e.com/tsugi/dev" target="_self">Test LTI Tools</a></li>
+            <li><a href="https://www.pg4e.com/tsugi/store" target="_self">Test Tools</a></li>
+            <li><a href="https://www.pg4e.com/logout" target="_self">Logout</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div> <!--/.nav-collapse -->
+  </div> <!--container -->
+</nav>
+<script>
+if ( ! inIframe() ) {
+  document.getElementById('tsugi_main_nav_bar').style.display = 'block';
+  document.getElementsByTagName('body')[0].style.paddingTop = '5.93rem';
+} else {
+  document.getElementsByTagName('body')[0].style.paddingTop = '1.0rem';
+}
+</script>
+<div id="flashmessages"></div><style>
+center {
+    padding-bottom: 10px;
+}
+@media print {
+    #chapters {
+        display: none;
+    }
+}
+a[target="_blank"]:after {
+  content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQElEQVR42qXKwQkAIAxDUUdxtO6/RBQkQZvSi8I/pL4BoGw/XPkh4XigPmsUgh0626AjRsgxHTkUThsG2T/sIlzdTsp52kSS1wAAAABJRU5ErkJggg==);
+  margin: 0 3px 0 5px;
+}
+</style>
+
+
+<div id="body_container">
+<script>
+if (window!=window.top) {
+    document.getElementById("body_container").className = "container-fluid";
+} else {
+    document.getElementById("body_container").className = "container";
+}
+</script>
+<script>
+function onSelect() {
+    console.log($('#chapters').val());
+    window.location = $('#chapters').val();
+}
+</script>
+<div style="float:right">
+<select id="chapters" onchange="onSelect();">
+<option value="pg4e_pyaw_psql.md">Using PostgreSQL on PythonAnywhere</option>
+<option value="pg4e_model.md">Unesco Data Model</option>
+<option value="pg4e_pyaw_es.md" selected="">Using ElasticSearch on PythonAnywhere</option>
+</select>
+</div>
+<h1>Using ElasticSearch on PythonAnywhere</h1>
+<p>You use <a href="https://www.pythonanywhere.com/" target="_blank">PythonAnywhere</a>
+to do the exercises for this course.  Follow their instructions to create a free/beginner
+account.   You should not need anything beyond the free account for this account.</p>
+<!--
+You can view a
+<a href="https://youtu.be/a6-1bsy9kxw" target="_blank">video walkthrough</a>
+of this handout.
+-->
+<h2>Installing the Python Elastic Search Library</h2>
+<p>Since PythonAnywhere is a shared environment, using <code>pip</code> the normal way will <em>not</em> work
+unless you have created a virtual environment.</p>
+<pre><code>pip install elasticsearch</code></pre>
+<p>You can set up a virtual environment and then use <code>pip</code> or just add the <code>--user</code> parameter to pip.
+Also make sure you are doing it for Python 3.</p>
+<pre><code>pip3 install --user elasticsearch</code></pre>
+<center><img src="./lecture_files/01-pip.png" width="90%" alt="Using pip --user on PythonAnywhere" style="border: 1px black solid;"></center>
+<h2>Downloading Files using Linux Command Line</h2>
+<p>Some of the assignments ask you to download a file with code or data to do an assignment.  You can do this
+by saving the file in your browser to your local computer and then uploading the file to PythonAnywhere.  But
+there is a much quicker way to do it using the command line and the <code>wget</code> command.</p>
+<p>The <code>wget</code> command (you can also use <code>curl -O</code>) retrieves a file from the web and stores it locally.  For example
+in the Linux Shell you can type:</p>
+<pre><code>wget https://www.pg4e.com/code/elasticbook.py
+wget https://www.pg4e.com/code/hidden-dist.py
+wget https://www.pg4e.com/gutenberg/cache/epub/18866/pg18866.txt</code></pre>
+<p>And these files will be downloaded.</p>
+<center><img src="./lecture_files/02-wget.png" width="90%" alt="An example of using wget on PythonAnywhere" style="border: 1px black solid;"></center>
+<p>The beginner accounts on PythonAnywhere are behind a firewall so you
+can only access pre-approved web sites - so don't be surprised if you get an error like:</p>
+<pre><code>$ wget http://www.amazon.com/                                                           
+--2020-10-28 12:30:25--  http://www.amazon.com/                                                 
+Resolving proxy.server (proxy.server)... 10.0.0.98                                              
+Connecting to proxy.server (proxy.server)|10.0.0.98|:3128... connected.
+Proxy request sent, awaiting response... 403 Forbidden
+2020-10-28 12:30:25 ERROR 403: Forbidden.</code></pre>
+<p>The <code>wget</code> and <code>curl</code> commands are powerful command line tools that are very helpful when logged into
+a Linux system in the cloud.</p><script src="./lecture_files/jquery-1.11.3.js"></script>
+<script src="./lecture_files/bootstrap.min.js"></script>
+<script src="./lecture_files/jquery-ui.min.js"></script>
+<script src="./lecture_files/jquery.timeago-1.6.3.js"></script>
+<script src="./lecture_files/handlebars-v4.0.2.js"></script>
+<script src="./lecture_files/tmpl.min.js"></script>
+<script src="./lecture_files/tsugiscripts.js"></script>
+<script type="text/javascript">
+    HEARTBEAT_TIMEOUT = setTimeout(doHeartBeat, _TSUGI.heartbeat);
+    tsugiEmbedMenu();
+    $(document).ready(function() { jQuery("time.timeago").timeago(); });
+</script>
+<script>
+$('a').each(function (x) {
+    var href = $(this).attr('href');
+    if ( ! href ) return;
+    if ( ! href.startsWith('#') ) return;
+    var pos = href.indexOf('/?');
+    if ( pos < 1 ) return;
+    // console.dir('Patching broken # href='+href);
+    href = href.substring(0,pos);
+    $(this).attr('href', href);
+});
+
+</script>
+<script>
+// https://stackoverflow.com/questions/7901679/jquery-add-target-blank-for-outgoing-link
+$(window).load(function() {
+    $('a[href^="http"]').attr('target', function() {
+      if(this.host == location.host) return '_self'
+      else return '_blank'
+    });
+});
+</script>
+
+</div>
+
+</div><script src="./lecture_files/webcomponents-lite.js"></script></body></html>

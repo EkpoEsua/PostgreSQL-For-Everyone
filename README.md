@@ -18,5 +18,7 @@ A course on Database using PostgreSQL by Dr Chuck - [pg4e](https://pg4e.com)
 * Use of PostrgeSQL's jsonb datatype for manipulating and storing json.
 * Creating a GIN index on a jsonb datatype column for optimal retrieval of data.
 * Use of python's psyconpg2 library as client to a PostreSQL server, to load json data from an external API.
+* Understanding the ACID and BASE Database architecures, examples and their use cases.
+* Using Elasticsearch both as a powerful indexing tool into already existing data, and as a BASE(NoSQL) database.
 
-Tools used `psql`, `PostgreSQL`, `psycopg2`
+Tools used `psql`, `PostgreSQL`, `psycopg2`, `ElasticSearch`
